@@ -45,66 +45,122 @@
     // - Modularize com funções como inicializarHash(), buscarSuspeito(), listarAssociacoes().
 
 // ---------------------------------------------
-// ESTRUTURA DA ÁRVORE BINÁRIA
+// ESTRUTURA DA ÁRVORE BINÁRIA (MESMA DO NÍVEL NOVATO)
 // ---------------------------------------------
 
 typedef struct Sala {
     char nome[50];
     struct Sala* esq;
     struct Sala* dir;
+    char pista[50]; // pista encontrada nesta sala (se hover)
 } Sala;
 
 // Função para criar uma sala da mansão
-Sala* criarSala(const char* nome) {
+Sala* criarSala(const char* nome, const char* pista) {
     Sala* nova = (Sala*)malloc(sizeof(Sala));
     strcpy(nova->nome, nome);
+    if (pista)
+        strcpy(nova->pista, pista);
+    else
+        strcpy(nova->pista,"");    
     nova->esq = NULL;
     nova->dir = NULL;
     return nova;
 }
 
-// Explorar a mansão
-void explorarSalas(Sala* atual) {
+// -----------------------------------------------------------
+// ÁRVORE DE BUSCA — PISTAS
+// -----------------------------------------------------------
+typedef struct NodeBST {
+    char pista[50];
+    struct NodeBST* esq;
+    struct NodeBST* dir;
+} NodeBST;
+
+// Inserção na BST
+NodeBST* inserirBST(NodeBST* raiz, const char* pista) {
+    if (raiz == NULL) {
+        NodeBST* novo = (NodeBST*)malloc(sizeof(NodeBST));
+        strcpy(novo->pista, pista);
+        novo->esq = novo->dir = NULL;
+        return novo;
+    }
+
+    if (strcmp(pista, raiz->pista) < 0)
+        raiz->esq = inserirBST(raiz->esq, pista);
+    else
+        raiz->dir = inserirBST(raiz->dir, pista);
+
+    return raiz;
+}
+
+// Listagem em ordem
+void emOrdem(NodeBST* raiz) {
+    if (raiz == NULL) return;
+    emOrdem(raiz->esq);
+    printf("• %s\n", raiz->pista);
+    emOrdem(raiz->dir);
+}
+
+// -----------------------------------------------------------
+// EXPLORAÇÃO DAS SALAS + COLETA DE PISTAS
+// -----------------------------------------------------------
+void explorarSalas(Sala* atual, NodeBST** arvorePistas) {
     char opc;
 
     while (atual != NULL) {
         printf("\nVocê está em: %s\n", atual->nome);
+
+        // Coleta de pista
+        if (strlen(atual->pista) > 0) {
+            printf("Você encontrou uma pista: %s\n", atual->pista);
+            *arvorePistas = inserirBST(*arvorePistas, atual->pista);
+        }
+
         printf("Escolha um caminho:\n");
-        printf("  (e) Esquerda\n");
-        printf("  (d) Direita\n");
+        printf("  (e) Ir para Esquerda\n");
+        printf("  (d) Ir para Direita\n");
+        printf("  (l) Listar pistas\n");
         printf("  (s) Sair da exploração\n");
         printf("→ ");
         scanf(" %c", &opc);
 
         if (opc == 'e') {
             atual = atual->esq;
+
         } else if (opc == 'd') {
             atual = atual->dir;
-        } else if (opc == 's') {
-            printf("\nSaindo da exploração...\n");
+
+        } else if (opc == 'l') {
+            printf("\n===== PISTAS COLETADAS =====\n");
+            emOrdem(*arvorePistas);
+        }
+        
+        else if (opc == 's')
             return;
-        } else {
+
+        else 
             printf("\nOpção inválida!\n");
         }
-    }
+    
 
-    printf("\nVocê chegou ao fim do caminho! (nó-folha)\n");
+    printf("\nVocê chegou ao fim do caminho!\n");
 }
 
 int main() {
-    // Criação estática da árvore
-    Sala* hall = criarSala("Hall de Entrada");
-    hall->esq = criarSala("Sala de Estar");
-    hall->dir = criarSala("Biblioteca");
+    NodeBST* arvorePistas = NULL;
 
-    hall->esq->esq = criarSala("Cozinha");
-    hall->esq->dir = criarSala("Sala de Música");
+    Sala* hall = criarSala("Hall de Entrada", "");
+    hall->esq = criarSala("Sala de Estar", "Pegada de sapato");
+    hall->dir = criarSala("Biblioteca", "");
 
-    hall->dir->esq = criarSala("Escritório");
-    hall->dir->dir = criarSala("Jardim Interno");
+    hall->esq->esq = criarSala("Cozinha", "Copo Quebrado");
+    hall->esq->dir = criarSala("Sala de Música", "");
 
-    // Inicia o jogo
-    explorarSalas(hall);
+    hall->dir->esq = criarSala("Escritório", "Papel Rasgado");
+    hall->dir->dir = criarSala("Jardim Interno", "Perfume Forte");
+
+    explorarSalas(hall, &arvorePistas);
 
     return 0;
 }
