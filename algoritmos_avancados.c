@@ -44,8 +44,92 @@
     // - Em caso de colisão, use lista encadeada para tratar.
     // - Modularize com funções como inicializarHash(), buscarSuspeito(), listarAssociacoes().
 
+
+#define TAM_HASH 10  
+
+// -----------------------------------------------------------
+// ESTRUTURA DA TABELA HASH
+// -----------------------------------------------------------
+typedef struct HashNode {
+    char pista[50];
+    char suspeito[50];
+    struct HashNode* prox;
+} HashNode;
+
+HashNode* tabela[TAM_HASH];
+
+// Função hash simples
+int hashFunction(const char* str) {
+    int soma = 0;
+    for (int i = 0; str[i] != '\0'; i++)
+        soma += str[i];
+    return soma % TAM_HASH;
+}
+
+void inserirNaHash(const char* pista, const char* suspeito) {
+    int indice = hashFunction(pista);
+
+    HashNode* novo = (HashNode*)malloc(sizeof(HashNode));
+    strcpy(novo->pista, pista);
+    strcpy(novo->suspeito, suspeito);
+    novo->prox = tabela[indice];
+    tabela[indice] = novo;
+}
+
+void exibirHash() {
+    printf("\n===== Tabela de Suspeitos =====\n");
+
+    for (int i = 0; i < TAM_HASH; i++) {
+        HashNode* aux = tabela[i];
+        while (aux != NULL) {
+            printf("Pista: %-20s → Suspeito: %s\n", aux->pista, aux->suspeito);
+            aux = aux->prox;
+        }
+    }
+}
+
+// Verifica o suspeito mais citado
+void suspeitoMaisCitado() {
+    char nomes[20][50];
+    int cont[20] = {0};
+    int qtd = 0;
+
+    for (int i = 0; i < TAM_HASH; i++) {
+        HashNode* aux = tabela[i];
+        while (aux != NULL) {
+
+            // Se já existe no array de contagem
+            int existe = -1;
+            for (int j = 0; j < qtd; j++) {
+                if (strcmp(nomes[j], aux->suspeito) == 0) {
+                    existe = j;
+                    break;
+                }
+            }
+
+            if (existe == -1) {
+                strcpy(nomes[qtd], aux->suspeito);
+                cont[qtd]++;
+                qtd++;
+            } else {
+                cont[existe]++;
+            }
+
+            aux = aux->prox;
+        }
+    }
+
+    // Acha o maior
+    int maior = 0;
+    for (int i = 1; i < qtd; i++)
+        if (cont[i] > cont[maior])
+            maior = i;
+
+    printf("\nSuspeito mais associado às pistas: **%s**\n", nomes[maior]);
+}
+
 // ---------------------------------------------
-// ESTRUTURA DA ÁRVORE BINÁRIA (MESMA DO NÍVEL NOVATO)
+// ÁRVORE DE SALAS + PISTAS (MESMO DO AVENTUREIRO)
 // ---------------------------------------------
 
 typedef struct Sala {
@@ -53,18 +137,16 @@ typedef struct Sala {
     struct Sala* esq;
     struct Sala* dir;
     char pista[50]; // pista encontrada nesta sala (se hover)
+    char suspeito[50];
 } Sala;
 
 // Função para criar uma sala da mansão
-Sala* criarSala(const char* nome, const char* pista) {
+Sala* criarSala(const char* nome, const char* pista, const char* suspeito) {
     Sala* nova = (Sala*)malloc(sizeof(Sala));
     strcpy(nova->nome, nome);
-    if (pista)
-        strcpy(nova->pista, pista);
-    else
-        strcpy(nova->pista,"");    
-    nova->esq = NULL;
-    nova->dir = NULL;
+    strcpy(nova->pista, pista ? pista : "");
+    strcpy(nova->suspeito, suspeito ? suspeito : "");
+    nova->esq = nova->dir = NULL;
     return nova;
 }
 
@@ -114,51 +196,38 @@ void explorarSalas(Sala* atual, NodeBST** arvorePistas) {
         // Coleta de pista
         if (strlen(atual->pista) > 0) {
             printf("Você encontrou uma pista: %s\n", atual->pista);
+            printf("Suspeito associado: %s\n", atual->suspeito);
+
             *arvorePistas = inserirBST(*arvorePistas, atual->pista);
-        }
-
-        printf("Escolha um caminho:\n");
-        printf("  (e) Ir para Esquerda\n");
-        printf("  (d) Ir para Direita\n");
-        printf("  (l) Listar pistas\n");
-        printf("  (s) Sair da exploração\n");
-        printf("→ ");
-        scanf(" %c", &opc);
-
-        if (opc == 'e') {
-            atual = atual->esq;
-
-        } else if (opc == 'd') {
-            atual = atual->dir;
-
-        } else if (opc == 'l') {
-            printf("\n===== PISTAS COLETADAS =====\n");
-            emOrdem(*arvorePistas);
+            inserirNaHash(atual->pista, atual->suspeito);
         }
         
-        else if (opc == 's')
-            return;
+        printf("\nOpções:\n");
+        printf("(e) Esquerda  (d) Direita  (h) Ver hash  (m) Mais citado  (s) Sair\n→ ");
+        scanf(" %c", &opc);
 
-        else 
-            printf("\nOpção inválida!\n");
-        }
-    
-
-    printf("\nVocê chegou ao fim do caminho!\n");
+        if (opc == 'e') atual = atual->esq;
+        else if (opc == 'd') atual = atual->dir;
+        else if (opc == 'h') exibirHash();
+        else if (opc == 'm') suspeitoMaisCitado();
+        else if (opc == 's') return;
+        else printf("Opção inválida!\n");
+    }
 }
+
 
 int main() {
     NodeBST* arvorePistas = NULL;
 
-    Sala* hall = criarSala("Hall de Entrada", "");
-    hall->esq = criarSala("Sala de Estar", "Pegada de sapato");
-    hall->dir = criarSala("Biblioteca", "");
+    Sala* hall = criarSala("Hall de Entrada", "", "");
+    hall->esq = criarSala("Sala de Estar", "Pegada de sapato", "Jardineiro");
+    hall->dir = criarSala("Biblioteca", "", "");
 
-    hall->esq->esq = criarSala("Cozinha", "Copo Quebrado");
-    hall->esq->dir = criarSala("Sala de Música", "");
+    hall->esq->esq = criarSala("Cozinha", "Copo Quebrado", "Cozinheira");
+    hall->esq->dir = criarSala("Sala de Música", "", "");
 
-    hall->dir->esq = criarSala("Escritório", "Papel Rasgado");
-    hall->dir->dir = criarSala("Jardim Interno", "Perfume Forte");
+    hall->dir->esq = criarSala("Escritório", "Papel Rasgado", "Secretário");
+    hall->dir->dir = criarSala("Jardim Interno", "Perfume Forte", "Socialite");
 
     explorarSalas(hall, &arvorePistas);
 
