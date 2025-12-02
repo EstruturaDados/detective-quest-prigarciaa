@@ -1,11 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // Desafio Detective Quest
 // Tema 4 - Árvores e Tabela Hash
 // Este código inicial serve como base para o desenvolvimento das estruturas de navegação, pistas e suspeitos.
 // Use as instruções de cada região para desenvolver o sistema completo com árvore binária, árvore de busca e tabela hash.
 
-int main() {
+
 
     // 🌱 Nível Novato: Mapa da Mansão com Árvore Binária
     //
@@ -42,6 +44,67 @@ int main() {
     // - Em caso de colisão, use lista encadeada para tratar.
     // - Modularize com funções como inicializarHash(), buscarSuspeito(), listarAssociacoes().
 
-    return 0;
+// ---------------------------------------------
+// ESTRUTURA DA ÁRVORE BINÁRIA
+// ---------------------------------------------
+
+typedef struct Sala {
+    char nome[50];
+    struct Sala* esq;
+    struct Sala* dir;
+} Sala;
+
+// Função para criar uma sala da mansão
+Sala* criarSala(const char* nome) {
+    Sala* nova = (Sala*)malloc(sizeof(Sala));
+    strcpy(nova->nome, nome);
+    nova->esq = NULL;
+    nova->dir = NULL;
+    return nova;
 }
 
+// Explorar a mansão
+void explorarSalas(Sala* atual) {
+    char opc;
+
+    while (atual != NULL) {
+        printf("\nVocê está em: %s\n", atual->nome);
+        printf("Escolha um caminho:\n");
+        printf("  (e) Esquerda\n");
+        printf("  (d) Direita\n");
+        printf("  (s) Sair da exploração\n");
+        printf("→ ");
+        scanf(" %c", &opc);
+
+        if (opc == 'e') {
+            atual = atual->esq;
+        } else if (opc == 'd') {
+            atual = atual->dir;
+        } else if (opc == 's') {
+            printf("\nSaindo da exploração...\n");
+            return;
+        } else {
+            printf("\nOpção inválida!\n");
+        }
+    }
+
+    printf("\nVocê chegou ao fim do caminho! (nó-folha)\n");
+}
+
+int main() {
+    // Criação estática da árvore
+    Sala* hall = criarSala("Hall de Entrada");
+    hall->esq = criarSala("Sala de Estar");
+    hall->dir = criarSala("Biblioteca");
+
+    hall->esq->esq = criarSala("Cozinha");
+    hall->esq->dir = criarSala("Sala de Música");
+
+    hall->dir->esq = criarSala("Escritório");
+    hall->dir->dir = criarSala("Jardim Interno");
+
+    // Inicia o jogo
+    explorarSalas(hall);
+
+    return 0;
+}
