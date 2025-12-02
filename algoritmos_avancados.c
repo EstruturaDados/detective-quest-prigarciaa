@@ -47,9 +47,11 @@
 
 #define TAM_HASH 10  
 
-// -----------------------------------------------------------
-// ESTRUTURA DA TABELA HASH
-// -----------------------------------------------------------
+// ==========================================================
+// ====================== NÍVEL MESTRE ======================
+// =============== TABELA HASH (PISTA -> SUSPEITO) ==========
+// ==========================================================
+
 typedef struct HashNode {
     char pista[50];
     char suspeito[50];
@@ -72,6 +74,7 @@ void inserirNaHash(const char* pista, const char* suspeito) {
     HashNode* novo = (HashNode*)malloc(sizeof(HashNode));
     strcpy(novo->pista, pista);
     strcpy(novo->suspeito, suspeito);
+
     novo->prox = tabela[indice];
     tabela[indice] = novo;
 }
@@ -81,8 +84,10 @@ void exibirHash() {
 
     for (int i = 0; i < TAM_HASH; i++) {
         HashNode* aux = tabela[i];
+
         while (aux != NULL) {
-            printf("Pista: %-20s → Suspeito: %s\n", aux->pista, aux->suspeito);
+            printf("Pista: %-20s → Suspeito: %s\n", 
+                   aux->pista, aux->suspeito);
             aux = aux->prox;
         }
     }
@@ -96,6 +101,7 @@ void suspeitoMaisCitado() {
 
     for (int i = 0; i < TAM_HASH; i++) {
         HashNode* aux = tabela[i];
+
         while (aux != NULL) {
 
             // Se já existe no array de contagem
@@ -128,31 +134,39 @@ void suspeitoMaisCitado() {
     printf("\nSuspeito mais associado às pistas: **%s**\n", nomes[maior]);
 }
 
-// ---------------------------------------------
-// ÁRVORE DE SALAS + PISTAS (MESMO DO AVENTUREIRO)
-// ---------------------------------------------
+// ==========================================================
+// ==================== NÍVEL NOVATO ========================
+// ================ ÁRVORE BINÁRIA DE SALAS =================
+// ==========================================================
 
 typedef struct Sala {
     char nome[50];
     struct Sala* esq;
     struct Sala* dir;
-    char pista[50]; // pista encontrada nesta sala (se hover)
+
+    // Nível Aventureiro / Mestre
+    char pista[50]; // pista encontrada nesta sala (se houver)
     char suspeito[50];
 } Sala;
 
 // Função para criar uma sala da mansão
 Sala* criarSala(const char* nome, const char* pista, const char* suspeito) {
     Sala* nova = (Sala*)malloc(sizeof(Sala));
+   
     strcpy(nova->nome, nome);
     strcpy(nova->pista, pista ? pista : "");
     strcpy(nova->suspeito, suspeito ? suspeito : "");
-    nova->esq = nova->dir = NULL;
+
+    nova->esq = NULL;
+    nova->dir = NULL;
+
     return nova;
 }
 
-// -----------------------------------------------------------
-// ÁRVORE DE BUSCA — PISTAS
-// -----------------------------------------------------------
+// ==========================================================
+// ================== NÍVEL AVENTUREIRO =====================
+// =============== ÁRVORE DE BUSCA (PISTAS) =================
+// ==========================================================
 typedef struct NodeBST {
     char pista[50];
     struct NodeBST* esq;
@@ -164,7 +178,10 @@ NodeBST* inserirBST(NodeBST* raiz, const char* pista) {
     if (raiz == NULL) {
         NodeBST* novo = (NodeBST*)malloc(sizeof(NodeBST));
         strcpy(novo->pista, pista);
-        novo->esq = novo->dir = NULL;
+
+        novo->esq = NULL;
+        novo->dir = NULL;
+
         return novo;
     }
 
@@ -179,19 +196,24 @@ NodeBST* inserirBST(NodeBST* raiz, const char* pista) {
 // Listagem em ordem
 void emOrdem(NodeBST* raiz) {
     if (raiz == NULL) return;
+
     emOrdem(raiz->esq);
     printf("• %s\n", raiz->pista);
     emOrdem(raiz->dir);
 }
 
-// -----------------------------------------------------------
-// EXPLORAÇÃO DAS SALAS + COLETA DE PISTAS
-// -----------------------------------------------------------
+// ==========================================================
+// ========== EXPLORAÇÃO DAS SALAS (TODOS OS NÍVEIS) ========
+// ==========================================================
+
 void explorarSalas(Sala* atual, NodeBST** arvorePistas) {
     char opc;
 
     while (atual != NULL) {
-        printf("\nVocê está em: %s\n", atual->nome);
+       
+        printf("\n===========================\n");
+        printf("Você está em: %s\n", atual->nome);
+        printf("===========================\n");
 
         // Coleta de pista
         if (strlen(atual->pista) > 0) {
@@ -201,21 +223,38 @@ void explorarSalas(Sala* atual, NodeBST** arvorePistas) {
             *arvorePistas = inserirBST(*arvorePistas, atual->pista);
             inserirNaHash(atual->pista, atual->suspeito);
         }
+
         
-        printf("\nOpções:\n");
-        printf("(e) Esquerda  (d) Direita  (h) Ver hash  (m) Mais citado  (s) Sair\n→ ");
+        printf("Escolha uma opção:\n");
+        printf("e - Ir para a esquerda\n");
+        printf("d - Ir para a direita\n");
+        printf("p - Listar pistas (em ordem)\n");
+        printf("h - Ver tabela hash (pista → suspeito)\n");
+        printf("m - Ver suspeito mais citado\n");
+        printf("s - Sair da exploração\n");
+        printf("→ ");
+
         scanf(" %c", &opc);
 
-        if (opc == 'e') atual = atual->esq;
-        else if (opc == 'd') atual = atual->dir;
-        else if (opc == 'h') exibirHash();
-        else if (opc == 'm') suspeitoMaisCitado();
-        else if (opc == 's') return;
-        else printf("Opção inválida!\n");
+        switch (opc) {
+            case 'e': atual = atual->esq; break;
+            case 'd': atual = atual->dir; break;
+            case 'p': 
+                printf("\n===== Pistas Encontradas =====\n");
+                emOrdem(*arvorePistas);
+                break;
+            case 'h': exibirHash(); break;
+            case 'm': suspeitoMaisCitado(); break;
+            case 's': return;
+            default: printf("\nOpção inválida!\n");
+        }
     }
 }
 
-
+// ==========================================================
+// =========================== MAIN =========================
+// ==========================================================
+       
 int main() {
     NodeBST* arvorePistas = NULL;
 
